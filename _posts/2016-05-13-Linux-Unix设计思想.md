@@ -45,7 +45,7 @@ hier 层次化思考
 
 
 {% for category in site.categories %}
-<h2>{{ category | first }}</h2> <span>{{ category | last | size }}</span> 
+<h3>{{ category | first }} ({{ category | last | size }})</h3> 
 <ul class="arc-list">
 {% for post in category.last %} 
 <li>{{ post.date | date:"%d/%m/%Y"}}<a href="{{ post.url }}">{{ post.title }}</a></li>
