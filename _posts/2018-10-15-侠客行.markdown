@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "侠客行 李白"
+title:  "侠客行"
 date:   2018-10-15 19:17:06 +0000
 categories: read
 ---
