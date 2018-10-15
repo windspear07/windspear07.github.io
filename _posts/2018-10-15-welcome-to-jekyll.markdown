@@ -24,12 +24,11 @@ Check out the [Jekyll docs][jekyll-docs] for more info on how to get the most ou
 [jekyll-gh]:   https://github.com/jekyll/jekyll
 [jekyll-talk]: https://talk.jekyllrb.com/
 
-<h4>Category</h4>
-<ul>
-    //这里使用了 jekyll 语法，会被编译，所以加多个"\"
-    {\% for category in site.categories %\}
-    <li><a href="/categories/{\{ category | first }\}/" title="view all
-posts">{\{ category | first }\} {\{ category | last | size }\}</a>
-    </li>
-    {\% endfor %\}
-</ul>
+{% for category in site.categories %}
+<h2>{{ category | first }}</h2> </span>{{ category | last | size }}</span> 
+<ul class="arc-list">
+{% for post in category.last %} 
+<li>{{ post.date | date:"%d/%m/%Y"}}<a href="{{ post.url }}">{{ post.title }}</a></li>
+{% endfor %}
+</ul> 
+{% endfor %}
