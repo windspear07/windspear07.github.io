@@ -4,6 +4,7 @@ title:  "《Linux/Unix设计思想》"
 date:   2016-05-13 22:17:06 +0000
 categories: 读书笔记 
 ---
+
 SMALL 小即是美
 
 1THING 让每个程序只做好意见事情
@@ -42,7 +43,7 @@ worse 更坏就是更好
 
 hier 层次化思考
 
-
+-----
 
 {% for category in site.categories %}
 <h3>{{ category | first }} ({{ category | last | size }})</h3> 

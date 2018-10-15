@@ -1,0 +1,101 @@
+---
+layout: post
+title:  "《大型分布式网站架构 设计与实践》笔记"
+date:   2016-06-19 18:15:06 +0000
+categories: 读书笔记 
+---
+
+### 一、面向服务的体系架构
+ 
+### 二、分布式系统基础设施
+
+1 分布式缓存 memcache、分布式缓存
+
+2 持久化存储
+        IOE ---》 开源软件+pc server的分布式架构
+        mysql的扩展、主从模式
+        hbase 列存储数据库
+        redis k-v数据库
+
+3、消息系统
+
+        activeMQ
+
+4、垂直化搜索引擎
+
+        lucene
+        solr
+ 
+### 三、安全架构
+
+1 常见攻击手段
+
+        xss跨站脚本攻击
+        csrf跨站请求伪造
+        sql注入
+        文件上传漏洞
+        DDos分布式拒绝服务攻击
+
+2 安全算法
+
+        摘要  md5 sha、十六进制、base64
+        对称加密  DES AES
+        非对称加密 RSA
+        数字签名
+        数字证书
+
+3 摘要认证
+
+4 签名认证
+
+5 hppts
+
+6 oauth协议
+ 
+### 四、系统稳定性
+
+1 在线日志分析
+
+2 集群监控
+
+        load top df traffic
+        心跳 ： ping curl 业务检测
+        容量评估
+
+3 流量控制
+
+4 性能优化 分层去考虑中
+
+        前端yslow
+        页面响应时间
+        方法响应时间
+        btrace
+        gc日志分析
+        数据库查询分析
+        系统资源
+
+5 测试工具
+
+        ab apachebench。压力测试
+        jmeter
+        loadrunner
+        TCPCopy
+
+6 优化
+ 
+        java 单例、future、线程池、nio、减少上下文切换、降低锁竞争、
+        传输压缩
+        结果缓存
+        查询优化
+        gc优化
+        硬件
+ 
+java工具：jp、jstats、jd-gui、jinfo、jstack、jmap、btrace、jconsole  visualVM
+ 
+### 五、数据分析
+
+        收集inotify
+        分发activemq
+        存储chukwa
+        hadoop、hive
+        流式数据分析storm

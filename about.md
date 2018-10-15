@@ -4,6 +4,7 @@ title: About
 permalink: /about/
 ---
 
+
 随机的记录，能否抓住瞬息万变的现在。
 
 You can find the source code for the Jekyll new theme at:
