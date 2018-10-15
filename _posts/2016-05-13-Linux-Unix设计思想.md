@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "《Linux/Unix设计思想》"
-date:   2018-10-15 22:17:06 +0000
+date:   2016-05-13 22:17:06 +0000
 categories: 读书笔记 
 ---
 SMALL 小即是美
