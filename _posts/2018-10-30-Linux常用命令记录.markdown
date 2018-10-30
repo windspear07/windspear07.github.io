@@ -1,0 +1,28 @@
+---
+layout: post
+title:  "Linux常用命令记录"
+date:   2018-10-30 16:07:01 +0000
+categories: Linux
+---
+
+### 一、CentOS关闭图形界面
+
+        查看默认的target，执行：
+        systemctl get-default
+
+        开机以命令模式启动，执行：
+        systemctl set-default multi-user.target
+
+        开机以图形界面启动，执行：
+        systemctl set-default graphical.target
+
+### 二、ssh免密码登录
+
+        #1.生成私钥
+        ssh-keygen 
+        #2.向主机分发私钥
+        ssh-copy-id root@192.168.37.122
+
+
+
+doing
