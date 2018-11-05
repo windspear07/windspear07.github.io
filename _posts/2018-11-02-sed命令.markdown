@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "sed命令"
-date:   2018-11-05 11:07:01 +0000
+date:   2018-11-02 11:07:01 +0000
 categories: Linux 
 ---
 
@@ -80,3 +80,5 @@ sed [-nefri] ‘command’ 输入文本
 多点编辑
 
     sed -e '1,5d' -e 's/test/check/' file
+
+ps：最初想利用sed是为了ansible生成文件用，结果发现ansible直接有template。
