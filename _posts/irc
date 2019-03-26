@@ -1,0 +1,164 @@
+
+
+
+
+
+
+### IRC server
+
+        wget --trust-server-names https://www.unrealircd.org/downloads/unrealircd-latest.tar.gz
+        tar xzvf unrealircd-4.2.X.tar.gz
+        cd unrealircd-4.2.X
+        ./Config
+        make
+        make install
+        cd /root/unrealircd
+
+        cp conf/examples/example.conf conf/unrealircd.conf
+        unrealircd start
+        unrealircd stop
+
+配置文件在conf
+
+### IRC client
+
+        sudo apt-get install irssi
+        irssi
+
+一：常用命令
+1.连接服务器和加入房间
+    /connect irc.freenode.com   #also /serverirc.freenode.com #这个是连接服务器的命令！连接AOL公司的IRC服务：
+    /server irc.icq.com     /join #chinese,#love_china,#china,#asia  #Note:一个朋友要求！
+    /join #ubuntu-cn,#ubuntu,Fedora,fedora-cn
+
+    *****重要的一条命令*********
+    图形界面的时候，还算好处理，直接改编码就OK，一般聊天室默认是utf-8,
+    但也有写聊天室是 gbk23012gbk10380   的！
+    所以终端有一条命令是改编码的！
+    **********************************
+     /recode add #fedora utf8;
+    加入此频道编码格式，/recode查看加入的编码列表。
+    ********************************** 
+
+2.窗口操作
+    Alt+1..0 #切换窗口
+    Ctrl+p,n #上一窗口，下一窗口
+    /window close #关闭当前窗口
+    /window close <数字>#关闭指定编号的窗口
+    /window list #窗口列表
+
+3.IRC命令
+    /nick <昵称> #更改昵称
+    /whois <昵称> #查看他人信息
+    /ignore <昵称> #忽略某人聊天内容
+    /list #频道列表
+    /join #加入频道
+    /part [channels] [message] #退出频道，不加频道名退出当前频道，后面可以跟退出原因
+    /me #关于自己的信息
+
+5.服务端命令(Services)
+    服务端分为ChanServ(频道服务), NickServ(昵称服务) 和 MemoServ(留言服务)三类。
+    /msg chanserv #频道服务
+    /msg chanserv help #获得频道服务帮助信息
+    /msg nickserv #昵称服务
+    /msg nickserv help #获得昵称服务帮助信息
+    /msg memoserv #留言服务
+    /msg memoserv help #获得留言服务帮助信息
+
+
+    服务端命令不同服务器可能有所不同，详细参考相关文档
+    *更改昵称
+    /nick <YouNick>
+    *注册昵称
+     /msg nickserv register<PassWD>
+    *验证昵称
+    /msg nickserv identify<PassWD>
+    *踢一个正在使用你昵称的人
+    /ghost <NickName> <PassWD>
+    *修改你现在这个昵称的密码
+    /msg nickserv set <NewPassWD>
+    *删除自己（如果你不满意这个昵称或不想在IRC聊天了)
+    /msg nickserv drop
+    *注册频道
+     /msg chanserv register
+
+
+    *Other Command
+
+
+ NickServ- Other commands: UNLINK, UNSET,GHOST, INFO, LIST, LISTCHANS,
+-NickServ-              STATUS
+-----------------------------------------------------------
+
+二：聊天命令
+  *给某人发私聊(悄悄话)
+   /msg<NickName>
+Or
+  /say <NickNmae>
+
+
+  *屏蔽某个烦人的人
+  /ingore <Nick Name> all
+
+
+ *离开状态,AFK
+ /away <原因>
+
+ *回来了
+/back
+
+*查询用户信息
+/whois <Nick Name>
+
+*查看现在聊天室主题
+/topic
+
+*退出聊天室
+/quit <原因>
+比如我: /quit 我只愿面朝大海，春暖花开...
+
+*查看现在聊天室所有的用户
+/names
+
+*汇总
+
+/nick 更改昵称
+
+/join 加入/建立聊天室
+
+
+/mode +(-)i 锁住聊天室
+
+
+/mode +(-)o 设定管理员权限
+
+
+/knock 要求进入私人聊天室
+
+
+/invite 邀请用户进入私人聊天室
+
+
+/privmsg 悄悄话
+
+
+/ignore 忽略
+
+
+/away 暂时离开
+
+
+/whois 查询用户信息
+
+
+/names 列出所有在线用户
+
+
+/topic 更换聊天室主题
+
+
+/kick 把用户踢出聊天室
+
+
+/quit 退出聊天室
+

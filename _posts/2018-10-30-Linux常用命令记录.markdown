@@ -23,6 +23,87 @@ categories: Linux
         #2.向主机分发私钥
         ssh-copy-id root@192.168.37.122
 
+### 三、环境变量
+
+1. 调整/etc/profile,对所有用户有效，永久。
+
+2. 添加到用户目录的.bash_profile,只对当前用户有效，永久。
+
+3. export命令,只对当前shell有效，临时。
+
+### 四、ubuntu使用windows字体
+
+
+1. 从 WIN7的字体文件夹fonts中寻找自己喜欢的中文字体：
+                雅黑：msyh
+                黑体：SimHei
+                宋体：SimSun
+                华文细黑：STXihei
+                华文楷体：STKaiti
+                华文宋体：STSong
+                华文仿宋：STFangsong
+                华文彩云：STCaiyun
+                华文琥珀：STHupo
+                华文隶书：STLiti
+                华文行楷：STXingkai
+                华文新魏：STXinwei
+
+2. 创建一个文件夹，命名为：WINDOWS，将自己喜欢的字体文件全部装入 WINDOWS文件夹内；
+
+3. 将WINDOWS字体文件夹拷贝在/usr/share/fonts下
+
+4. 改字体权限，chmod a+r *.*
+
+5. 建立字体缓存，命令：
+
+                cd /usr/share/fonts/WINDOWS/
+                sudo mkfontscale
+                sudo mkfontdir
+                sudo fc-cache -fv
+
+### 五、键位切换
+
+1. vim ~/.Xmodmap and save the following lines.
+
+                remove Lock = Caps_Lock
+                keysym Escape = Caps_Lock
+                keysym Caps_Lock = Escape
+                add Lock = Caps_Lock
+
+                remove Control = Control_L
+                remove mod1 = Alt_L
+                keysym Control_L = Alt_L
+                keysym Alt_L = Control_L
+                add Control = Control_L
+                add mod1 = Alt_L
+
+2. xmodmap ~/.Xmodmap
+
+
+### 六、常用工具
+
+1. visual studio code 
+
+https://code.visualstudio.com/docs/setup/linux#_rhel-fedora-and-centos-based-distributions
+
+2. 常用
+
+screen tmux git tree 
+
+3. 保存git
+
+git config --global credential.helper store
+
+4. go安装
+
+下载后放到/usr/local/go
+然后再环境变量添加
+PATH=$PATH:/usr/local/go/bin/
+export GOPATH=/home/wind/go
+
+5. docker 安装
+https://docs.docker.com/install/
+
 
 
 doing

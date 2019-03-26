@@ -18,22 +18,97 @@ docker docker-ce-18.03.1.ce
 etcd 3.2.15
 flannel 0.7.1
 ```
+# kubernetes安装与配置
 
-提前下载好kubernetes
+标签（空格分隔）： 参考
 
-## 一、证书
+---
 
-### (一)环境准备
+版本说明
+```
+kubernetes 1.12
+docker docker-ce-18.03.1.ce
+etcd 3.2.15
+flannel 0.7.1
+```
 
-#### 1.docker安装（只节点安装）
+注意：本文以centos 7.3为例进行说明。各个说明尽量
 
-运行docker安装脚本  
+## 一、环境准备
 
-脚本位置：kubernetes_help/docker安装脚本/docker.sh
+### 基础软件
+```
+yum install -y gcc  gcc-c++  wget  lrzsz telnet net-tools  epel*  vim   unzip  ntpdate  yum-utils device-mapper-persistent-data conntrack-tools  libseccomp libtool-ltdl
+```
+### 下载kubernetes（ALL）
+
+提前下载好kubernetes，put kubernates to
+
+```xshell
+## put to /tmp/kub/kubernetes-server-linux-amd64.tar.gz
+# 解压安装包，复制文件
+tar -xzvf kubernetes-server-linux-amd64.tar.gz
+cp kubernetes/server/bin/kube* /usr/bin/
+#安装并赋予可执行权限，继续进行操作：
+chmod a+x /usr/bin/kube*
+```
+
+### docker安装（节点）
+
+```
+echo ">>>>>>>>>>>>>>installdocker-ce strat<<<<<<<<<<<"
+cd /usr/local
+yum remove docker docker-common docker-selinux docker-engine
+yum install -y yum-utils
+yum install -y device-mapper-persistent-data
+yum install -y lvm2
+yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+# yum list docker-ce --showduplicates | sort -r 查看现有docker-ce版本
+yum install -y docker-ce-18.03.1.ce
+curl -sSL https://get.daocloud.io/daotools/set_mirror.sh | sh -s  http://7b8275a8.m.daocloud.io Copy
+systemctl restart docker
+docker ps
+echo ">>>>>>>>>>>>>>installdocker-ce end<<<<<<<<<<<"
+```
 
 可以根据操作系统版本参考：https://docs.docker.com/install/#releases
 
-注意：本文以centos 7.3为例进行说明。各个说明尽量
+### 拉取镜像（all）
+
+```xshell
+docker pull registry.docker-cn.com/coredns/coredns:0.9.10
+docker pull coredns/coredns:1.2.4
+```
+
+### 安装CFSSL（master）
+
+```
+    wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+    wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
+
+    chmod +x cfssl_linux-amd64
+    mv cfssl_linux-amd64 /usr/local/bin/cfssl
+
+    chmod +x cfssljson_linux-amd64
+    mv cfssljson_linux-amd64 /usr/local/bin/cfssljson
+
+    chmod +x cfssl-certinfo_linux-amd64
+    mv cfssl-certinfo_linux-amd64 /usr/local/bin/cfssl-certinfo
+
+    echo PATH=/usr/local/bin:$PATH >> ~/.bash_profile
+```
+
+### 安装Etcd(all)
+
+```xshell
+#查询版本是否合适，我这里是3.2.15版本
+yum info etcd 
+#安装
+yum install -y etcd-3.2.15
+```
+
+### 环境准备
 
 #### 2. 关闭firewalld
 
@@ -42,7 +117,6 @@ flannel 0.7.1
 ```
 systemctl stop firewalld
 systemctl disable firewalld
-setenforce 0
 ```
 
 #### 3. 关闭所有节点的Selinux
@@ -50,46 +124,68 @@ setenforce 0
     setenforce 0
     sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
 
-#### 4.更改主机名
 
-分别在三台不同的机器上：
-
-    hostnamectl set-hostname master
-    hostnamectl set-hostname node1
-    hostnamectl set-hostname node2
-
-#### 5.配置/etc/hosts文件
-
-    echo 192.168.1.167 master >> /etc/hosts
-    echo 192.168.1.159 node1  >> /etc/hosts
-    echo 192.168.1.164 node2 >> /etc/hosts
 
 #### 6.时间校对
 
+```
     #安装ntp
     yum install -y ntp
     #校对时间
     ntpdate ntp1.aliyun.com
     hwclock -w
-
+```
 #### 7.linux底层的iptables 启动容器的所有节点每次开机都要执行      
-
+```
     iptables --list
     iptables -P  FORWARD ACCEPT
-
+```
 #### 8.关闭swap分区
-
+```
     #关闭全部
     swapoff -a
     ##注释掉vi /etc/fstab中带有swap的一行,则重启也不会开启   
     sed -i 's/^.*swap/#&/g' /etc/fstab
+```
+#### 9.更改主机名和hosts
 
-#### 9.基本架构
+设置统一环境变量
 
-    IP	节点	备注
-    10.10.90.105	master	etcd复用此节点
-    10.10.90.106	node1	etcd复用此节点
-    10.10.90.107	node2	etcd复用此节点
+```
+echo  master=192.168.102.111 >> ~/.bashrc
+echo  n1=192.168.102.112 >> ~/.bashrc
+echo  n2=192.168.102.113 >> ~/.bashrc
+
+#个性的变量
+echo  myname=node2 >> ~/.bashrc
+echo  myip=192.168.102.113 >> ~/.bashrc
+
+source ~/.bashrc
+
+```
+
+
+分别在三台不同的机器上：
+
+```
+    #更改hostname
+    hostnamectl set-hostname $myname
+
+    ##配置/etc/hosts文件
+    echo $master master >> /etc/hosts
+    echo $n1 node1  >> /etc/hosts
+    echo $n2 node2 >> /etc/hosts
+
+    hostname
+    cat /etc/hosts
+```
+
+结构
+
+    IP  节点  备注
+    10.10.90.105  master  etcd复用此节点
+    10.10.90.106  node1 etcd复用此节点
+    10.10.90.107  node2 etcd复用此节点
 
 #### 10.阿里服务器部署的改动
 
@@ -112,6 +208,7 @@ alias kubectl="kubectl -s http://172.17.95.3:8080"
 IP为启动haproxy的主机IP
 
 #### 12.加入节点，原机器需要修改
+
 (1) /etc/hosts修改
 (2) 修改：kubernetes-csr.json  重新生成：kubernetes.pem kubernetes.csr  kubernetes-key.pem
 
@@ -135,31 +232,9 @@ IP为启动haproxy的主机IP
 
 ### 三、部署步骤
 
+#### 1.创建TLS证书和秘钥(master)
 
-#### 1.创建TLS证书和秘钥
-
-在
-
-1)安装CFSSL工具
-
-【操作节点master】
-
-    wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
-    wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
-
-    chmod +x cfssl_linux-amd64
-    mv cfssl_linux-amd64 /usr/local/bin/cfssl
-
-    chmod +x cfssljson_linux-amd64
-    mv cfssljson_linux-amd64 /usr/local/bin/cfssljson
-
-    chmod +x cfssl-certinfo_linux-amd64
-    mv cfssl-certinfo_linux-amd64 /usr/local/bin/cfssl-certinfo
-
-    export PATH=/usr/local/bin:$PATH
-
-2)创建CA
+1)创建CA
 
 ```xshell
 mkdir /root/ssl
@@ -169,6 +244,7 @@ cfssl print-defaults csr > csr.json
 ```
 根据config.json文件的格式创建如下的ca-config.json文件
 过期时间设置成了 87600h
+
 ```xshell
 cat > ca-config.json <<EOF
 {
@@ -229,8 +305,11 @@ EOF
 
 4)生成CA证书私钥
 ```xshell
-$ cfssl gencert -initca ca-csr.json | cfssljson -bare ca
-$ ls ca*
+cfssl gencert -initca ca-csr.json | cfssljson -bare ca
+ls ca*
+```
+输出
+```
 ca-config.json  ca.csr  ca-csr.json  ca-key.pem  ca.pem
 ```
 
@@ -245,11 +324,10 @@ cat >kubernetes-csr.json << EOF
     "CN": "kubernetes",
     "hosts": [
       "127.0.0.1",
-      "192.168.1.159",
-      "192.168.1.160",
-      "192.168.1.161",
-      "192.168.1.164",
-      "192.168.1.167",
+      "${master}",
+      "${n1}",
+      "${n2}",
+      "10.254.0.1",
       "kubernetes",
       "kubernetes.default",
       "kubernetes.default.svc",
@@ -358,20 +436,17 @@ cfssl-certinfo -cert kubernetes.pem
 ```xshell
 mkdir -p /etc/kubernetes/ssl
 cp *.pem /etc/kubernetes/ssl
+
+ssh root@$n1 'mkdir -p /etc/kubernetes/ssl'
+scp *.pem root@$n1:/etc/kubernetes/ssl
+
+ssh root@$n2 'mkdir -p /etc/kubernetes/ssl'
+scp *.pem root@$n2:/etc/kubernetes/ssl
 ```
 
 从上面的顺序可以看出pem文件的创建都是以一个json文件为输入进行创建的，只需要把pem文件分别scp拷贝的所有节点的/etc/kubernetes/ssl文件夹即可。
 
-## 二、证书kubeconfig文件创建【master执行】
-
-解压安装包，复制文件
-
-```xshell
-tar -xzvf kubernetes-server-linux-amd64.tar.gz
-cp kubernetes/server/bin/kube* /usr/bin/
-chmod a+x /usr/bin/kube*
-```
-安装并赋予可执行权限，继续进行操作：
+## 二、证书kubeconfig文件创建(master执行)
 
 ###1、创建TLS bootstrapping Token，即token.csv文件
 ```xshell
@@ -387,16 +462,23 @@ EOF
 拷贝文件
 ```xshell
 cp token.csv /etc/kubernetes
+
+scp token.csv root@$n1:/etc/kubernetes
+scp token.csv root@$n2:/etc/kubernetes
+
 ```
 
-###2、创建kubelet（node节点）要用的bootstrap.kubeconfig文件（在master节点执行）
+###2、创建kubelet（node节点）要用的bootstrap.kubeconfig文件（master）
 
 注意：以下都是一条条执行的命令，不是复制这些代码到文件里。
 
 多master时，KUBE_APISERVER为启动haproxy的主机IP。
 ```xshell
 cd /etc/kubernetes
-export KUBE_APISERVER="https://192.168.1.167:6443"
+
+#变量
+echo  KUBE_APISERVER="https://${master}:6443" >> ~/.bashrc
+source ~/.bashrc
 
 # 设置集群参数
 kubectl config set-cluster kubernetes \
@@ -421,7 +503,6 @@ kubectl config use-context default --kubeconfig=bootstrap.kubeconfig
 ```
 ###3、创建节点要用的kube-proxy.kubeconfig文件
 ```xshell
-export KUBE_APISERVER="https://10.10.90.105:6443"
 # 设置集群参数
 kubectl config set-cluster kubernetes \
   --certificate-authority=/etc/kubernetes/ssl/ca.pem \
@@ -446,35 +527,22 @@ kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
 
 将两个 kubeconfig 文件分发到所有 Node 机器的 /etc/kubernetes/ 目录，本机就是生产的那些
 ```xshell
-scp bootstrap.kubeconfig kube-proxy.kubeconfig root@10.10.90.106:/etc/kubernetes/
-
-scp bootstrap.kubeconfig kube-proxy.kubeconfig root@10.10.90.107:/etc/kubernetes/
+scp bootstrap.kubeconfig kube-proxy.kubeconfig root@$n1:/etc/kubernetes/
+scp bootstrap.kubeconfig kube-proxy.kubeconfig root@$n2:/etc/kubernetes/
 ```
 ## 三、创建高可用etcd集群
 
 这里的etcd集群复用我们测试的3个节点，3个node都要安装并启动，注意修改配置文件.
 其实etcd的机器与目前的机器逻辑上是不相关的，即也可以直接将etcd放到其他的集群上。
 
-###1、TLS认证文件分发：etcd集群认证用，除了本机有，分发到其他node节点
-```xshell
-scp ca.pem kubernetes-key.pem kubernetes.pem root@10.10.90.106:/etc/kubernetes/ssl
-scp ca.pem kubernetes-key.pem kubernetes.pem root@10.10.90.107:/etc/kubernetes/ssl
-```
-###2、安装Etcd，这里使用的yum安装方式
-```xshell
-#查询版本是否合适，我这里是3.2.15版本
-yum info etcd 
-#安装
-yum install etcd-3.2.15
-```
+###3、创建etcd的systemd unit文件（既centos7下的服务定义文件）
 
 若使用yum安装，默认etcd命令将在/usr/bin目录下，注意修改下面的etcd.service文件中的启动命令地址为/usr/bin/etcd
-
-###3、创建etcd的systemd unit文件（既centos7下的服务定义文件）
 
 文件位置：/usr/lib/systemd/system/etcd.service ，默认该文件存在，删除重建即可。
 
 参照  kubernete安装、启动文件\k8s配置文件 内容
+
 
 ```
 cat > /usr/lib/systemd/system/etcd.service << EOF
@@ -497,12 +565,12 @@ ExecStart=/usr/bin/etcd \
   --peer-key-file=/etc/kubernetes/ssl/kubernetes-key.pem \
   --trusted-ca-file=/etc/kubernetes/ssl/ca.pem \
   --peer-trusted-ca-file=/etc/kubernetes/ssl/ca.pem \
-  --initial-advertise-peer-urls https://192.168.1.159:2380 \
-  --listen-peer-urls https://192.168.1.159:2380 \
-  --listen-client-urls https://192.168.1.159:2379,http://127.0.0.1:2379 \
-  --advertise-client-urls https://192.168.1.159:2379 \
+  --initial-advertise-peer-urls https://${myip}:2380 \
+  --listen-peer-urls https://${myip}:2380 \
+  --listen-client-urls https://${myip}:2379,http://127.0.0.1:2379 \
+  --advertise-client-urls https://${myip}:2379 \
   --initial-cluster-token etcd-cluster-0 \
-  --initial-cluster etcd-host0=https://192.168.1.167:2380,etcd-host1=https://192.168.1.164:2380,etcd-host2=https://192.168.1.159:2380 \
+  --initial-cluster etcd-host0=https://${master}:2380,etcd-host1=https://${n1}:2380,etcd-host2=https://${n2}:2380\
   --initial-cluster-state new \
   --data-dir=/var/lib/etcd
 Restart=on-failure
@@ -528,18 +596,20 @@ EOF
 
 文件位置：/etc/etcd/etcd.conf，yum安装完之后该文件会存在，删除重建即可。
 ```
-mkdir -p /var/lib/etcd
-cat > /usr/lib/systemd/system/etcd.service << EOF
+etcdname=infra2
+
+mkdir -p /etc/etcd
+cat > /etc/etcd/etcd.conf << EOF
 # [member]
-ETCD_NAME=infra1
+ETCD_NAME=${etcdname}
 ETCD_DATA_DIR="/var/lib/etcd"
-ETCD_LISTEN_PEER_URLS="https://192.168.1.164:2380"
-ETCD_LISTEN_CLIENT_URLS="https://192.168.1.164:2379"
+ETCD_LISTEN_PEER_URLS="https://${myip}:2380"
+ETCD_LISTEN_CLIENT_URLS="https://${myip}:2379"
 
 #[cluster]
-ETCD_INITIAL_ADVERTISE_PEER_URLS="https://192.168.1.164:2380"
+ETCD_INITIAL_ADVERTISE_PEER_URLS="https://${myip}:2380"
 ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"
-ETCD_ADVERTISE_CLIENT_URLS="https://192.168.1.164:2379"
+ETCD_ADVERTISE_CLIENT_URLS="https://${myip}:2379"
 EOF
 
 ```
@@ -616,7 +686,6 @@ kube-apiserver
 kube-scheduler
 kube-controller-manager
 ```
-这个三个组件密切联系，再次提醒关闭selinux，关闭防火墙（或者注意端口）。
 
 ### 1、创建TLS证书
 
@@ -626,21 +695,7 @@ kube-controller-manager
 # ls /etc/kubernetes/ssl
 admin-key.pem  admin.pem  ca-key.pem  ca.pem  kube-proxy-key.pem  kube-proxy.pem  kubernetes-key.pem  kubernetes.pem
 ```
-### 2、获取k8s server端文件并安装
 
-我们采用在github上下载的方式获得tar包，解压或者二进制程序。说明:这里使用的是最新的1.10版本的。
-
-```xshell
-wget https://dl.k8s.io/v1.10.0/kubernetes-server-linux-amd64.tar.gz
-tar -xzvf kubernetes-server-linux-amd64.tar.gz
-cd kubernetes
-tar -xzvf  kubernetes-src.tar.gz
-```
-拷贝二进制文件到/usr/bin下，可能会提示overwrite，因为前面安装的kubectl会安装一部分，直接覆盖就好，下面的语句使用了-r去覆盖，不加-r会提示，并且这个server包含server和client文件，不用单独下载client包
-```xshell
-cp -r server/bin/{kube-apiserver,kube-controller-manager,kube-scheduler,kubectl,kube-proxy,kubelet} /usr/bin/
-```
-至此一些必要的二进制命令文件获取完毕，下一部制作3个组件的服务程序和配置文件
 
 ### 3、制作apiserver的服务文件
 
@@ -702,8 +757,7 @@ KUBE_LOG_LEVEL="--v=0"
 KUBE_ALLOW_PRIV="--allow-privileged=true"
 
 # How the controller-manager, scheduler, and proxy find the apiserver
-#KUBE_MASTER="--master=http://sz-pg-oam-docker-test-001.tendcloud.com:8080"
-KUBE_MASTER="--master=http://192.168.1.167:8080"
+KUBE_MASTER="--master=http://${master}:8080"
 EOF
 ```
 
@@ -720,7 +774,7 @@ cat > /etc/kubernetes/apiserver << EOF
 #
 
 # The address on the local server to listen to.
-KUBE_API_ADDRESS="--advertise-address=192.168.1.167 --bind-address=192.168.1.167 --insecure-bind-address=0.0.0.0"
+KUBE_API_ADDRESS="--advertise-address=${master} --bind-address=${master}  --insecure-bind-address=0.0.0.0"
 
 # The port on the local server to listen on.
 #KUBE_API_PORT="--port=8080"
@@ -729,7 +783,7 @@ KUBE_API_ADDRESS="--advertise-address=192.168.1.167 --bind-address=192.168.1.167
 # KUBELET_PORT="--kubelet-port=10250"
 
 # Comma separated list of nodes in the etcd cluster
-KUBE_ETCD_SERVERS="--etcd-servers=https://192.168.1.167:2379,https://192.168.1.164:2379,https://192.168.1.159:2379"
+KUBE_ETCD_SERVERS="--etcd-servers=https://${master}:2379,https://${n1}:2379,https://${n2}:2379"
 
 # Address range to use for services
 KUBE_SERVICE_ADDRESSES="--service-cluster-ip-range=10.254.0.0/16"
@@ -849,6 +903,18 @@ systemctl start kube-scheduler
 ###6、所有服务启动之后验证服务
 首先ss -tanl查看端口：我的如下：
 
+```
+State       Recv-Q Send-Q   Local Address:Port                  Peer Address:Port              
+LISTEN      0      128    192.168.102.111:6443                             *:*                  
+LISTEN      0      128    192.168.102.111:2379                             *:*                  
+LISTEN      0      128          127.0.0.1:2379                             *:*                  
+LISTEN      0      128    192.168.102.111:2380                             *:*                  
+LISTEN      0      128                  *:22                               *:*                  
+LISTEN      0      128                 :::10251                           :::*                  
+LISTEN      0      128                 :::10252                           :::*                  
+LISTEN      0      128                 :::8080                            :::*                  
+LISTEN      0      128                 :::10257                           :::*   
+```
 ![Alt text](./img/2.png "optional title")
 
 使用kubectl get命令获得组件信息：确保所有组件都是ok和healthy状态为true
@@ -967,7 +1033,7 @@ $ModLoad imudp
 $UDPServerRun 514
 ```
 并添加下面一行
-```	
+``` 
 local3.* /var/log/haproxy.log
 ```
 重启rsyslog
@@ -994,7 +1060,7 @@ source <(kubectl completion bash)
 
 执行以上命令可以执行kubectl命令的自动补全，因为kubectl太多子命令了。
 
-## 五、安装flannel网络插件
+## 五、安装flannel网络插件(node)
 
 node节点需要安装flannel网络插件才能保证所有的pod在一个局域网内通信，直接使用yum安装即可，版本是0.7.1.
 
@@ -1033,10 +1099,11 @@ RequiredBy=docker.service
 
 修改其配置文件/etc/sysconfig/flanneld 内容如下：
 ```
+cat > /etc/sysconfig/flanneld << EOF
 # Flanneld configuration options  
 
 # etcd url location.  Point this to the server where etcd runs
-FLANNEL_ETCD_ENDPOINTS="https://192.168.1.167:2379,https://192.168.1.164:2379,https://192.168.1.159:2379"
+FLANNEL_ETCD_ENDPOINTS="https://${master}:2379,https://${n1}:2379,https://${n2}:2379"
 
 # etcd config key.  This is the configuration key that flannel queries
 # For address range assignment
@@ -1046,6 +1113,7 @@ FLANNEL_ETCD_PREFIX="/kube-centos/network"
 # Any additional options that you want to pass
 #FLANNEL_OPTIONS=""
 FLANNEL_OPTIONS="-etcd-cafile=/etc/kubernetes/ssl/ca.pem -etcd-certfile=/etc/kubernetes/ssl/kubernetes.pem -etcd-keyfile=/etc/kubernetes/ssl/kubernetes-key.pem"
+EOF
 ```
 以上2步是2个node节点都需要做的。
 
@@ -1053,13 +1121,13 @@ FLANNEL_OPTIONS="-etcd-cafile=/etc/kubernetes/ssl/ca.pem -etcd-certfile=/etc/kub
 
 以下是2条命令，在任何node上创建都行，因为etcd是集群的。
 ```
-etcdctl --endpoints=https://192.168.1.167:2379,https://192.168.1.164:2379,https://192.168.1.159:2379 \
+etcdctl --endpoints=https://${master}:2379,https://${n1}:2379,https://${n2}:2379 \
   --ca-file=/etc/kubernetes/ssl/ca.pem \
   --cert-file=/etc/kubernetes/ssl/kubernetes.pem \
   --key-file=/etc/kubernetes/ssl/kubernetes-key.pem \
   mkdir /kube-centos/network
 
-etcdctl --endpoints=https://192.168.1.167:2379,https://192.168.1.164:2379,https://192.168.1.159:2379 \
+etcdctl --endpoints=https://${master}:2379,https://${n1}:2379,https://${n2}:2379 \
   --ca-file=/etc/kubernetes/ssl/ca.pem \
   --cert-file=/etc/kubernetes/ssl/kubernetes.pem \
   --key-file=/etc/kubernetes/ssl/kubernetes-key.pem \
@@ -1075,7 +1143,7 @@ systemctl status flanneld
 ###5、核对相关配置信息：
 ```xshell
 #先声明个endpoint变量，后边好调用
-[root@c7test_node1 ~]#ETCD_ENDPOINTS='https://192.168.1.167:2379,https://192.168.1.164:2379,https://192.168.1.159:2379'
+ETCD_ENDPOINTS='https://${master}:2379,https://${n1}:2379,https://${n2}:2379'
 
 
 [root@c7test_node1 ~]# etcdctl --endpoints=${ETCD_ENDPOINTS} \
@@ -1086,6 +1154,7 @@ ls /kube-centos/network/subnets
 #输出
 /kube-centos/network/subnets/172.30.87.0-24
 /kube-centos/network/subnets/172.30.92.0-24
+
 #说明，有几个node就有几个子网络，就有几条记录，我是2个node，分别安装了flannel插件
 
 
@@ -1122,7 +1191,7 @@ etcdctl --endpoints=${ETCD_ENDPOINTS} --ca-file=/etc/kubernetes/ssl/ca.pem --cer
 
 2)node节点无法自动创建kubelet.kubeconfig问题，这个是最严重的问题，原因是config文件没有拷贝到node的/etc/kubernetes文件夹内，因为kubelet启动调用kubelet配置文件的时候也会同时调用这个文件，具体见kubelt的servier文件配置方法，这个文件是自动生成的。如果没有自动生产，检查所有配置参数和报错，特别是config和kublet文件。
 
-3)有关config文件并不是你从客户端拷贝过来的时候就直接可以用了，需要里面修改master地址，因为apiserver的配置启动参数绑定的地址中安全的访问地址是10.10.90.105:6443,不安全是127.0.0.1:8080，这里可以简单理解为6443是安全端口，不过只监听在master的10.10.90.105的ip上，所以要修改node中config配置文件的master地址为 10.10.90.90.105:6443，而如果你master节点同时也是node节点的话，我测试了这个形式，那么你的config文件只能用127.0.0.1:8080访问，使用6443也是不行的，也就是说本地和其他机器访问apiserver的方式不同时的，否则log中会狂报错无法连接api，这里注意一下，如果node复用了master节点同事需要重启scheduler和control服务。
+3)有关config文件并不是你从客户端拷贝过来的时候就直接可以用了，需要里面修改master地址，因为apiserver的配置启动参数绑定的地址中安全的访问地址是10.10.90.105:6443,不安全是127.0.0.1:8080，这里可以简单理解为6443是安全端口，不过只监听在master的10.10.90.105的ip上，所以要修改node中config配置文件的master地址为 10.10.90.90.105:6443，而如果你master节点同时也是node节点的话，我测试了这个形式，那么你的config文件只能用127.0.0.1:8080访问，使用6443也是不行的，也就是说本地和其他机器访问apiserver的方式不同时的，否则log中会狂报错无法连接api，这里注意一下，如果node复用了master节点需要重启scheduler和control服务。
 
 4)Failed at step CHDIR spawning /usr/local/bin/kubelet: No such file or directory 是没有创建 /var/lib/kubelt文件夹
 
@@ -1182,20 +1251,7 @@ kubectl create clusterrolebinding kubelet-bootstrap \
 ```
 created成功后，我们回到node节点操作：
 
-获取k8s server端文件并安装
 
-我们采用在github上下载的方式获得tar包，解压或者二进制程序。说明:这里使用的是最新的1.10版本的。
-
-```xshell
-wget https://dl.k8s.io/v1.10.0/kubernetes-server-linux-amd64.tar.gz
-tar -xzvf kubernetes-server-linux-amd64.tar.gz
-cd kubernetes
-tar -xzvf  kubernetes-src.tar.gz
-```
-拷贝二进制文件到/usr/bin下，可能会提示overwrite，因为前面安装的kubectl会安装一部分，直接覆盖就好，下面的语句使用了-r去覆盖，不加-r会提示，并且这个server包含server和client文件，不用单独下载client包
-```xshell
-cp -r server/bin/{kube-proxy,kubelet} /usr/bin/
-```
 至此一些必要的二进制命令文件获取完毕，下一部制作3个组件的服务程序和配置文件
 
 我们已经获得了bin文件，开始配置相应的服务器文件
@@ -1205,6 +1261,7 @@ cp -r server/bin/{kube-proxy,kubelet} /usr/bin/
 更改KUBE_MASTER为master的ip
 
 ```
+cat > /etc/kubernetes/config << EOF
 ###
 # kubernetes system config
 #
@@ -1226,8 +1283,8 @@ KUBE_LOG_LEVEL="--v=0"
 KUBE_ALLOW_PRIV="--allow-privileged=true"
 
 # How the controller-manager, scheduler, and proxy find the apiserver
-#KUBE_MASTER="--master=http://sz-pg-oam-docker-test-001.tendcloud.com:8080"
-KUBE_MASTER="--master=https://192.168.1.67:6443"
+KUBE_MASTER="--master=https://${master}:6443"
+EOF
 ```
 多master时：KUBE_MASTER="--master=https://192.168.1.167:6443"，IP为启动haproxy的主机IP
 
@@ -1242,17 +1299,13 @@ cat > kubelet << EOF
 ## kubernetes kubelet (minion) config
 #
 ## The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
-KUBELET_ADDRESS="--address=192.168.1.159"
+KUBELET_ADDRESS="--address=${myip}"
 #
 ## The port for the info server to serve on
 #KUBELET_PORT="--port=10250"
 #
 ## You may leave this blank to use the actual hostname
-KUBELET_HOSTNAME="--hostname-override=192.168.1.159"
-#
-## location of the api-server
-## COMMENT THIS ON KUBERNETES 1.8+
-#KUBELET_API_SERVER="--api-servers=http://172.20.0.113:8080"
+##KUBELET_HOSTNAME="--hostname-override=192.168.1.159"
 #
 ## pod infrastructure container
 KUBELET_POD_INFRA_CONTAINER="--pod-infra-container-image=pause-amd64:3.0"
@@ -1308,6 +1361,7 @@ mkdir /var/lib/kubelet
 ```
 systemctl daemon-reload
 systemctl enable kubelet
+systemctl stop kubelet
 systemctl start kubelet
 systemctl status kubelet
 ```
@@ -1355,6 +1409,7 @@ yum install -y conntrack-tools
 ```
 创建 kube-proxy 的service配置文件，路径/usr/lib/systemd/system/kube-proxy.service，内容：
 ```
+cat > /usr/lib/systemd/system/kube-proxy.service << EOF
 [Unit]
 Description=Kubernetes Kube-Proxy Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
@@ -1373,15 +1428,18 @@ LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 添加配置文件/etc/kubernetes/proxy:内容为，需要更改为本机IP：
 ```
- proxy config
-
+cat > /etc/kubernetes/proxy << EOF
 # default config should be adequate
 
 # Add your own!
-KUBE_PROXY_ARGS="--bind-address=10.10.90.106 --hostname-override=10.10.90.106 --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig --cluster-cidr=10.254.0.0/16"
+#去掉了这一句 1107
+#--hostname-override=10.10.90.106 
+KUBE_PROXY_ARGS="--bind-address=${myip}--kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig --cluster-cidr=10.254.0.0/16"
+EOF
 ```
 
 注意事项：
@@ -1412,20 +1470,15 @@ kubelet_node_status.go:106] Unable to register node "node2" with API server: nod
 
 ## 七、coredns安装
 
-###1、拉取镜像
 
-在/etc/kubernetes/yamlfile新增配置文件coredns.yaml,当然这个文件你随意放置，我只是归类而已，安装节点为master节点，node中pull镜像
+在/etc/kubernetes/yamlfile新增配置文件coredns.yaml，安装节点为master节点，node中pull镜像
 
-```xshell
-docker pull registry.docker-cn.com/coredns/coredns:0.9.10
-docker pull coredns/coredns:1.2.4
-
-```
 
 ###2、新增配置文件coredns.yaml配置文件内容：
 
 注意配置文件中红色指定的image在本地仓库一定要存在，按照第一步下载下来接口，且名称要对应上
 ```
+cat > coredns.yaml << EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -1583,6 +1636,7 @@ spec:
   - name: metrics
     port: 9153
     protocol: TCP
+EOF
 ```
 ###3.启动dns前，修改kubernetes-csr.json文件，增加一行
 ```
@@ -1594,6 +1648,11 @@ spec:
 kubectl create -f coredns.yaml
 ```
 执行完成后开始添加服务及启动，可以通过kubectl  cluster-info查看
+
+```
+Kubernetes master is running at http://localhost:8080
+CoreDNS is running at http://localhost:8080/api/v1/namespaces/kube-system/services/coredns:dns/proxy
+```
 
 ![Alt text](./img/6.png "optional title")
 
@@ -1612,6 +1671,7 @@ docker pull registry.docker-cn.com/kubernetesdashboarddev/kubernetes-dashboard-a
 
 文件一dashboard.yaml：
 ```
+cat > dashboard.yaml << EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -1667,7 +1727,7 @@ spec:
         ports:
         - containerPort: 9090
         args:
-        -  --apiserver-host=http://172.17.95.3:8080
+        -  --apiserver-host=http://${master}:8080
         livenessProbe:
           httpGet:
             path: /
@@ -1677,6 +1737,7 @@ spec:
       tolerations:
       - key: "CriticalAddonsOnly"
         operator: "Exists"
+EOF        
 ```
 apiserver-host为启动haproxy的主机IP
 
@@ -1684,6 +1745,7 @@ apiserver-host为启动haproxy的主机IP
 
 dashboard-svc.yaml文件
 ```
+cat > dashboard-svc.yaml << EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -1701,6 +1763,7 @@ spec:
   - port: 9090
     targetPort: 9090
     nodePort: 32017
+EOF    
 ```
 ###3、分别执行2个部署文件
 ```xshell
@@ -1712,13 +1775,12 @@ kubectl create -f dashboard-svc.yaml
 kubectl get services kubernetes-dashboard -n kube-system
 ```
 ###5、如何访问？
-定义了一个nodeport的方式，端口为32017，这样
 
-32017就监听在宿主机了，使用宿主机ip+32017,也就是10.10.90.106:32017访问了。
+定义了一个nodeport的方式，端口为32017，这样32017就监听在宿主机了，使用宿主机ip+32017,也就是10.10.90.106:32017访问了。
 
 此时已经可以使用面板进行管理集群了，只不过面板目前少了不展示node节点的一定负载情况，比如cpu、内存等，可以按照另外一个heapster插件进行展示。
-
 
 参考
 
 1. http://www.cnblogs.com/netsa/category/1137187.html
+
